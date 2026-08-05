@@ -16,3 +16,4 @@ Now that we have the PCA components we can take each sample from our dataset and
 by doing matrix dot product (Remember that PCA components are linear combination of the original features in a sample) thus we can compute
 the score of any desired sample in PCA components
 
+(The Explaination is in the jupyter notebook incase the pdf fails to open)
