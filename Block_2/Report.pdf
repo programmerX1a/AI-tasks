@@ -1,0 +1,18 @@
+PCA (Principal Component Analysis) is a way to reduce (Combine) Features into Combined Features which reduces the dimensionality 
+of the features available
+Ex:(Strength Speed Stamina Balance Cars,Land owned) can be turned into two features (Physical Attributes,Wealth),for example
+You can say that physical attributes is a linear combination of (Strength,Speed,Stamina) and Wealth (Balance,Cars,Land owned)
+To get these PCA Components we first need to standarize the data by subtracting each feature from its feature's mean and dividing by 
+standard deviation.This is because the variance between data can change by units (from 1kg to 2kg) and from (2lbs to 4lbs) essentially
+the same weight but different deviaton due to the unit dividing by standard deviation solves this problem.The data is centered around the
+origin by default so we subtract from the data the mean so that its around the mean not the origin.
+We then from the standarized data calculate the covariance matrix which describes the relation between each variable 
+Now the original idea behind PCA is to find the line that fits most of the data so that the variance between each projected data on that
+point is great (The greater the variance between the points means that the two features are distinguishable otherwise redundant) 
+So we need to find the vector (line) that gives us maximum variance which is the first eigenvector (First PCA) of the Covariance matrix.
+and the Second eigenvector is the second PCA with Second-Best maximum variance up until nth eigenvector where n is the dimension of the
+Covariance matrix (nxn) 
+Now that we have the PCA components we can take each sample from our dataset and project their original features into the PCA components
+by doing matrix dot product (Remember that PCA components are linear combination of the original features in a sample) thus we can compute
+the score of any desired sample in PCA components
+
