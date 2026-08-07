@@ -1,15 +1,15 @@
 from Task_1_3 import *
 import os
 import json
-from google import genai
+from google import genai #pip install google-genai 
 from dotenv import load_dotenv
 load_dotenv("api.env")
 class MatchAI:
-    def __init__(self,model,controlled_team,risk_tolerance,decision_log):
+    def __init__(self,model,controlled_team,risk_tolerance):
         self.model=model
         self.controlled_team=controlled_team
         self.risk_tolerance=risk_tolerance
-        self.decision_log=decision_log
+        self.decision_log=[]
     def observe_state(self,match):
         minute=match.current_minute
         opponent=match.away_team if match.home_team==self.controlled_team else match.home_team
@@ -180,8 +180,8 @@ if __name__ == "__main__":
     
     ARG=Team("Argentina",argentina_roster,argentina_active_lineup)
     ES=Team("Spain",spain_roster,spain_active_lineup)
-    match_ai = MatchAI("gemini-3.6-flash", ARG, 0.7, [])
-    match=Match(ARG,ES,0,1,6,[],Phase.REGULATION)
+    match_ai = MatchAI("gemini-3.6-flash", ARG, 0.7) #Controlling Argentina with gemini 3.6-flash model 
+    match=Match(ARG,ES,0,1,6,[],Phase.REGULATION) #Argentina vs Spain,0-1 Minute 6
     action=match_ai.decide_action(match)
     print(action)
     match_ai.apply_decision(match, action)

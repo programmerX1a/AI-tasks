@@ -1,5 +1,10 @@
 from enum import Enum
 import random
+import os
+import json
+from google import genai #pip install google-genai 
+from dotenv import load_dotenv
+load_dotenv("api.env")
 class Position(Enum):
     GOALKEEPER="GOALKEEPER"
     MIDFIELDER="MIDFIELDER"
@@ -181,8 +186,75 @@ class Match:
             else:
                 self.phase=Phase.PENALTIES
             
-        
+class MatchAI:
+    def __init__(self,model,controlled_team,risk_tolerance):
+        self.model=model
+        self.controlled_team=controlled_team
+        self.risk_tolerance=risk_tolerance
+        self.decision_log=[]
+    def observe_state(self,match):
+        minute=match.current_minute
+        opponent=match.away_team if match.home_team==self.controlled_team else match.home_team
+        active_team=""
+        for i in self.controlled_team.active_lineup:
+            active_team+=i.name+","
+        attack=self.controlled_team.get_aggregate_attack()
+        defence=self.controlled_team.get_aggregate_defence()
+        opponent_attack=opponent.get_aggregate_attack()
+        opponent_defence=opponent.get_aggregate_defence()
+        bench=""
+        for i in self.controlled_team.bench:
+            bench+=i.name+","
+        return f"You are coaching {self.controlled_team} against {opponent.country_name} in a football match. Current minute is {minute}. Your active players are {active_team}. Your reserve players are {bench}. Your team's aggregate attack is {attack} and aggregate defence is {defence}. The opponent's aggregate attack is {opponent_attack} and aggregate defence is {opponent_defence}. You are required to make one of the following decisions with risk tolerance: {self.risk_tolerance}.Return me a JSON file where you store the decision in \"decision\" key and return one of them: (SUBSTITUTE,CHANGE_FORMATION,HOLD,PUSH_ATTACK) and store a detailed response on why you chose that decision in a \"explaination\" key Also very important to return me ONLY the JSON file so i can parse it aka no Here's the JSON File: ."
+    def decide_action(self,match):
+        client = genai.Client( api_key=os.getenv("API_KEY"))
+        response=client.models.generate_content(model=self.model,contents=self.observe_state(match))
+        json_response=json.loads(response.text)
+        self.decision_log.append(json_response["explaination"])
+        return json_response["decision"]
+    def apply_decision(self,decision,match):
+        if decision=="SUBSTITUTE":
+            lowest_stamina=100
+            for i in self.controlled_team.active_lineup:
+                if i.stamina<lowest_stamina:
+                    lowest_stamina=i.stamina
+                    player_out=i
+            highest_stamina=0
+            for i in self.controlled_team.bench:
+                if i.stamina>highest_stamina:
+                    highest_stamina=i.stamina
+                    player_in=i
+            self.controlled_team.execute_substitution(player_out,player_in)
+        elif decision=="CHANGE_FORMATION":
+            ratio=self.controlled_team.get_aggregate_attack()/self.controlled_team.get_aggregate_defence()
+            if ratio>1:
+                for i in self.controlled_team.active_lineup:
+                    if i.position==Position.FORWARD:
+                        player_atk=i
+                    if i.position==Position.DEFENDER: 
+                        player_def=i
+                player_atk.position=Position.DEFENDER
+                player_def.position=Position.FORWARD
 
+            else:
+                for i in self.controlled_team.active_lineup:
+                    if i.position==Position.DEFENDER:
+                        player_def=i
+                    if i.position==Position.FORWARD: 
+                        player_atk=i
+                player_def.position=Position.FORWARD
+                player_atk.position=Position.DEFENDER
+        elif decision=="HOLD":
+            self.controlled_team.risk_tolerance-=0.2
+            for i in self.controlled_team.active_lineup:
+                i.risk_tolerance-=0.2
+        elif decision=="PUSH_ATTACK":
+            self.controlled_team.risk_tolerance+=0.2
+            for i in self.controlled_team.active_lineup:
+                i.risk_tolerance+=0.2  
+        
+     
+      
 
 
 
@@ -279,6 +351,12 @@ if __name__=="__main__":
     ES=Team("Spain",spain_roster,spain_active_lineup)
     match=Match(ARG,ES,0,0,0,[],Phase.REGULATION)
     for i in range(0,91):
+        if i in [30,45,60,90]:
+            match_ai=MatchAI("gemini-3.6-flash",ARG,0.7)
+            action=match_ai.decide_action(match)
+            print(action)
+            match_ai.apply_decision(match, action)
+            print(match_ai.decision_log[len(match_ai.decision_log)-1])
         match.run_minute_tick()
 
     for i in match.timeline:
