@@ -63,3 +63,14 @@ for ball in range(1,21):
 
     df.to_string(f"balls_{ball}.txt",header=False,index=False)        
     plt.imshow(img)
+
+
+#First step is to add contrast to the original image
+#to better identify the balls in shadowy areas
+#then the image is converted to hsv to filter the image with
+#red/blue colors since we want blue/red balls then some filtering
+#is applied to reduce noise then we use hough circles to determine all circles
+#the parameters are loose because the balls formed in the grayscale image arent entirely circular
+#then for each circle formed by hough circles we check if the pixels inside the hough circle 
+#actually contains any of the pixels we filtered (30% of the area) 30% was chosen because in some cases
+#the circles arent complete in the color mask
