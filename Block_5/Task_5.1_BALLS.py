@@ -12,7 +12,7 @@ for ball in range(1,21):
     img=cv2.convertScaleAbs(img,alpha=1.3,beta=30)
     hsv_img=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
     plt.imshow(cv2.cvtColor(hsv_img,cv2.COLOR_HSV2RGB))
-    lower_blue = np.array([90, 70, 30])
+    lower_blue = np.array([90, 70, 90])
     upper_blue = np.array([135, 255, 255])
 
     lower_red_1 = np.array([0, 50, 150])
@@ -27,6 +27,9 @@ for ball in range(1,21):
     blue_mask_gr=cv2.cvtColor(blue_mask,cv2.COLOR_BGR2GRAY)
     blue_mask_gr=cv2.medianBlur(blue_mask_gr,17)
     blue_mask_gr=cv2.GaussianBlur(blue_mask_gr,(17,17),0)
+    blue_mask = cv2.morphologyEx(blue_mask,cv2.MORPH_OPEN,np.ones((17,17),np.uint8))
+
+
 
     red_mask_c=cv2.inRange(hsv_img,lower_red_1,upper_red_1) | cv2.inRange(hsv_img,lower_red_2,upper_red_2)
     red_mask=cv2.bitwise_and(img,img,mask=red_mask_c)
@@ -38,7 +41,7 @@ for ball in range(1,21):
     red_mask = cv2.morphologyEx(red_mask,cv2.MORPH_CLOSE,np.ones((7,7),np.uint8))
 
     img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
-    circles=cv2.HoughCircles(red_mask_gr,cv2.HOUGH_GRADIENT,1,1200,param1=90,param2=10,minRadius=5,maxRadius=700)
+    circles=cv2.HoughCircles(red_mask_gr,cv2.HOUGH_GRADIENT,1,1200,param1=90,param2=10,minRadius=10,maxRadius=700)
     if circles is not None:
         circles=np.uint16(np.around(circles))
         for i in circles[0]:
