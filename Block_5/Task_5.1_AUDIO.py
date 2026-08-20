@@ -15,6 +15,23 @@ fs,data=wavfile.read(os.path.abspath("task5_1.wav"))
 if len(data.shape) > 1:
     data = data[:, 0]
 
+freq_s2,time_s2,sxx2=spectrogram(data,fs=fs,window='hann',nperseg=1024,scaling='spectrum')
+sxx2=10*np.log10(sxx2+1e-12)
+
+
+
+
+plt.figure()
+t=np.linspace(0,len(data)/fs,len(data))
+plt.plot(t, data)
+plt.title('Time Spectrum (Old)')
+plt.xlabel('Time ')
+plt.ylabel('Amplitude ')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
 
 #Frequency domain
 freq = np.fft.rfftfreq(len(data), d=1/fs)
@@ -33,13 +50,17 @@ clean_fft = clean_magnitude * np.exp(1j * phase) #Polar form
 data = np.fft.irfft(clean_fft, n=len(data))
 
 #Allow the human voice band
-sos=butter(60,[80,4000],fs=fs,output='sos',btype='bandpass')
+sos=butter(6,[80,3000],fs=fs,output='sos',btype='bandpass')
 data=sosfiltfilt(sos,data)
+#Amplify the high frequency consonants
+gain_data=butter(6,[2000,4000],fs=fs,output='sos',btype='bandpass')
+gain_data=sosfiltfilt(sos,data)
+data=data+gain_data*1.5
 
 
-data=nr.reduce_noise(data,sr=fs)
-data=wiener(data,3)
+data=nr.reduce_noise(data,sr=fs,prop_decrease=1)
 data*=10
+data=np.clip(data,-1,1)
 
 wavfile.write("task5_1_clean.wav",fs,data.astype(np.float32))
 
@@ -57,12 +78,33 @@ sxx=10*np.log10(sxx+1e-12)
 plt.figure()
 plt.pcolormesh(time_s, freq_s, sxx, shading='gouraud', cmap='viridis')
 plt.colorbar(label='Magnitude')
-plt.title('Spectrogram')
+plt.title('Spectrogram (Cleaned)')
 plt.xlabel('Time')
 plt.ylabel('Frequency')
 plt.ylim(0, 10000) 
 plt.tight_layout()
 plt.show()
+
+
+
+
+plt.figure()
+plt.pcolormesh(time_s2, freq_s2, sxx2, shading='gouraud', cmap='viridis')
+plt.colorbar(label='Magnitude')
+plt.title('Spectrogram (Old)')
+plt.xlabel('Time')
+plt.ylabel('Frequency')
+plt.ylim(0, 10000) 
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+
 
 plt.figure()
 plt.plot(freq, magnitude)
@@ -86,12 +128,30 @@ plt.grid(True)
 plt.tight_layout()
 plt.xlim(0,5000)
 plt.show()
+
+
+
+
+
+
+
+
 plt.figure()
 t=np.linspace(0,len(data)/fs,len(data))
 plt.plot(t, data)
-plt.title('Time Spectrum')
+plt.title('Time Spectrum (Cleaned)')
 plt.xlabel('Time ')
 plt.ylabel('Amplitude ')
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+
+#If you look at the frequency and spectogram
+#for the old data you can see huge spikes in the frequency domain
+#these correspond to horizontal bright lines in the spectogram and these are our
+#high pitch "PEEEEEEP" noise which is high frequency ...using bandstop filter recursively
+#is inefficient so we use median filter since it best works with outliers like these
+#we then pass the signal into a bandpass filter we only need 300hz-3khz to hear the human voice (The range may vary)
+#then we amplify the data and equalize the high frequency components because the audio is unclear for 
+#consants and high frequency letters
