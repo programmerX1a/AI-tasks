@@ -154,4 +154,5 @@ plt.show()
 #is inefficient so we use median filter since it best works with outliers like these
 #we then pass the signal into a bandpass filter we only need 300hz-3khz to hear the human voice (The range may vary)
 #then we amplify the data and equalize the high frequency components because the audio is unclear for 
-#consants and high frequency letters
+#consonants and high frequency letters
+#The word is 'Transformation'
