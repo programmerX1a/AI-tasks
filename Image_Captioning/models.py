@@ -1,4 +1,4 @@
-from load import get_dataloaders,encode,decode,get_idx_2_word,get_word_2_idx
+from load import get_dataloaders,encode,decode,get_idx_2_word,get_word_2_idx,max_length
 import pandas as pd
 import numpy as np
 import torch
@@ -83,6 +83,19 @@ class Model(nn.Module):
         self.decoder=decoder
     def forward(self,image,caption):
         return self.decoder(caption,self.encoder(image))
+    def generate_caption(self,image,caption,img_num):
+        resulted_word=torch.empty((img_num,0),dtype=torch.long).to(device)
+        encoded_image=self.encoder(image)
+        for _ in range(max_length):
+            output=self.decoder(caption,encoded_image)
+            predicted = output[:, -1, :].argmax(dim=-1, keepdim=True)
+            resulted_word=torch.cat((resulted_word,predicted),1)
+            caption=torch.cat((caption,predicted),1)
+        resulted_word=resulted_word.cpu().detach().tolist()
+        return [decode(i) for i in resulted_word]
+
+        
+            
 
 
 
@@ -93,7 +106,3 @@ model=Model(encoder,decoder).to(device)
 
 def get_model():
     return model
-
-
-
-

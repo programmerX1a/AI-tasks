@@ -30,9 +30,11 @@ def train_epochs(epochs):
     
     for epoch in range(epochs):
         model.train()
+
         n_batches=0
         total_loss=0
         correct_ans=0
+        total_tokens=0
         for batch in train:
             n_batches+=1
             image=batch["image"]
@@ -48,8 +50,11 @@ def train_epochs(epochs):
                 logits=model(image,reference_to_predict)
 
                 prediction=logits.argmax(dim=-1)
-                mask=prediction!=0
-                correct_ans+=(prediction[mask]==label[mask]).float().mean().item()
+                mask=label!=0
+                correct_ans+=(prediction[mask]==label[mask]).sum().item()
+             
+                total_tokens+=mask.sum().item()
+               
 
 
                 loss_ref=criterion(logits.reshape(-1,logits.shape[-1]),label.reshape(-1))
@@ -59,52 +64,48 @@ def train_epochs(epochs):
             model.zero_grad()
             batch_loss.backward()
             optimizer.step()
+            
 
             total_loss+=batch_loss.item()
+            torch.save({"epoch": epoch,"model_state": model.state_dict(),"optimizer_state": optimizer.state_dict()}, "checkpoint.pth")
         print(total_loss/n_batches)
-        print(correct_ans/n_batches)
+        print(correct_ans/total_tokens)
             
                 
 
         
 
 
+
+
+
+
+
+
+train_epochs(10)
+
+
+
 model.eval()
-n_batches=0
-total_loss=0
-correct_ans=0
+
 for batch in test:
-    n_batches+=1
-    image=batch["image"]
-    loss=[]
-    for reference in batch["encoded_text"]:
-        with torch.no_grad():
-            reference=reference.to(device)
-            reference=reference.long()
+    with torch.no_grad():
+        image=batch["image"]
+        img_num=len(image)
+        reference_to_predict=np.zeros((img_num,1))
+        reference_to_predict[:,0]=word_2_idx.get("<start>")
+        reference_to_predict=torch.tensor(reference_to_predict).to(device).long()
+        logits=model.generate_caption(image,reference_to_predict,img_num)
+        for i in range(img_num):
+            plt.figure()
+            plt.imshow(Image.open(os.path.abspath("Images/"+image[i])))
+            plt.title(logits[i])
 
-            label=reference[:,1:]
-            label=label.long()
-            reference_to_predict=np.zeros(reference.shape)
-            reference_to_predict[:,0]=word_2_idx.get("<start>")
-            reference_to_predict[:,-1]=word_2_idx.get("<end>")
-            reference_to_predict=torch.tensor(reference_to_predict[:,0:-1]).to(device).long()
-            print(reference_to_predict)
-            logits=model(image,reference_to_predict)
-
-            prediction=logits.argmax(dim=-1)
-            mask=prediction!=0
-            correct_ans+=(prediction[mask]==label[mask]).float().mean().item()
-            print(decode(prediction.cpu().detach().tolist()[0]))
-
-
-            loss_ref=criterion(logits.reshape(-1,logits.shape[-1]),label.reshape(-1))
-            loss.append(loss_ref)
-        batch_loss=torch.stack(loss).mean()
-        total_loss+=batch_loss.item()
-print(total_loss/n_batches)
-print(correct_ans/n_batches)
     
+            
+                    
+      
         
 
 
-
+        
